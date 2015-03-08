@@ -70,6 +70,7 @@ function polylang_slug_unique_slug_in_language( $slug, $post_ID, $post_status, $
 	$where_clause = $polylang->model->where_clause( $lang, 'post');
 
 	// Polylang does not translate attachements - skip if it is one
+	// @TODO Recheck this with the Polylang settings
 	if ( 'attachment' == $post_type ) {
 
 		// Attachment slugs must be unique across all types.

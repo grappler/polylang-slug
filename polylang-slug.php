@@ -8,7 +8,7 @@
  * that starts the plugin.
  *
  * @link              http://example.com
- * @since             1.0.0
+ * @since             0.1.0
  * @package           Polylang_Slug
  *
  * @wordpress-plugin
@@ -16,7 +16,7 @@
  * Plugin URI:        https://github.com/grappler/polylang-slug
  * GitHub Plugin URI: https://github.com/grappler/polylang-slug
  * Description:       Allows same slug for multiple languages in Polylang
- * Version:           1.0.0
+ * Version:           0.1.0
  * Author:            Ulrich Pogson
  * Author URI:        http://ulrich.pogson.ch/
  * License:           GPL-2.0+
@@ -36,7 +36,7 @@ if ( ! class_exists( 'PLL_Model' && version_compare( $GLOBALS[ 'wp_version' ], '
 /**
  * Checks if the slug is unique within language.
  *
- * @since 1.0.0
+ * @since 0.1.0
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  * @global WP_Rewrite $wp_rewrite
@@ -103,13 +103,22 @@ function polylang_slug_unique_slug_in_language( $slug, $post_ID, $post_status, $
 }
 add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 6 );
 
-// https://developer.wordpress.org/reference/hooks/query/
-function polylang_slug_filter_queries( $sql ) {
+/**
+ * Modify the sql query to include checks for the current language
+ *
+ * @since 0.1.0
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ * @global StdClass $polylang
+ *
+ * @param string $query Database query.
+ */
+function polylang_slug_filter_queries( $query ) {
 	global $wpdb, $polylang;
 	// keep a record of the queries
-	$queries[] = $sql;
+	$queries[] = $query;
 
-	$is_main_sql = preg_match( "#\n\t\tSELECT ID, post_name, post_parent, post_type\n\t\tFROM {$wpdb->posts}\n\t\tWHERE post_name IN \(([^)]+)\)\n\t\tAND post_type IN \(([^)]+)\)#", $sql, $matches );
+	$is_main_sql = preg_match( "#\n\t\tSELECT ID, post_name, post_parent, post_type\n\t\tFROM {$wpdb->posts}\n\t\tWHERE post_name IN \(([^)]+)\)\n\t\tAND post_type IN \(([^)]+)\)#", $query, $matches );
 
 	if ( $is_main_sql ) {
 
@@ -120,7 +129,7 @@ function polylang_slug_filter_queries( $sql ) {
 		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
 		$where_clause = $polylang->model->where_clause( $lang, 'post' );
 
-		$sql = "SELECT ID, post_name, post_parent, post_type
+		$query = "SELECT ID, post_name, post_parent, post_type
 				FROM {$wpdb->posts}
 				$join_clause
 				WHERE post_name IN ({$matches[1]})
@@ -128,6 +137,6 @@ function polylang_slug_filter_queries( $sql ) {
 				$where_clause";
 	}
 
-	return $sql;
+	return $query;
 }
 add_filter( 'query', 'polylang_slug_filter_queries' );

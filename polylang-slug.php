@@ -29,7 +29,7 @@
 // Built using code from: https://wordpress.org/support/topic/plugin-polylang-identical-page-names-in-different-languages?replies=8#post-2669927
 
 // Check if Polylang_Base exists and if $polylang is the right object
-if ( ! class_exists( 'PLL_Model' && version_compare( $GLOBALS[ 'wp_version' ], '3.9', '>=' ) ) {
+if ( ! class_exists( 'PLL_Model' ) && version_compare( $GLOBALS[ 'wp_version' ], '3.9', '<' ) ) {
 	return;
 }
 

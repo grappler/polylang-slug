@@ -33,6 +33,8 @@ if ( ! class_exists( 'PLL_Model' ) ) {
 	return;
 }
 
+require dirname( __FILE__ ) . '/query.php';
+
 /**
  * Checks if the slug is unique within language.
  *
@@ -66,8 +68,10 @@ function polylang_slug_unique_slug_in_language( $slug, $post_ID, $post_status, $
 		return $slug;
 	}
 
-	$join_clause  = $polylang->model->join_clause('post');
-	$where_clause = $polylang->model->where_clause( $lang, 'post');
+	// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = " . ('term' == $type ? "t.term_id" : "ID");
+	$join_clause  = $polylang->model->join_clause( 'post' );
+	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
+	$where_clause = $polylang->model->where_clause( $lang, 'post' );
 
 	// Polylang does not translate attachements - skip if it is one
 	// @TODO Recheck this with the Polylang settings

@@ -16,10 +16,8 @@
 		"issues": "https://github.com/grappler/polylang-slug/issues"
 	},
 	"require" : {
-		"php"                                      : ">=5.3",
-		"wpackagist-plugin/polylang"               : "*"
-	},
-	"autoload"    : {
-		"classmap": ["php/"]
+		"php"                        : ">=5.3",
+		"johnpbloch/wordpress"       : ">=3.9",
+		"wpackagist-plugin/polylang" : "*"
 	}
 }

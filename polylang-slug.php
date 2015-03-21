@@ -38,8 +38,8 @@ if ( ! class_exists( 'PLL_Model' ) && version_compare( $GLOBALS[ 'wp_version' ],
  *
  * @since 0.1.0
  *
- * @global wpdb $wpdb WordPress database abstraction object.
- * @global WP_Rewrite $wp_rewrite
+ * @global wpdb     $wpdb     WordPress database abstraction object.
+ * @global StdClass $polylang
  *
  * @param string $slug        The desired slug (post_name).
  * @param int    $post_ID     Post ID.
@@ -140,3 +140,51 @@ function polylang_slug_filter_queries( $query ) {
 	return $query;
 }
 add_filter( 'query', 'polylang_slug_filter_queries' );
+
+/**
+ * Extend the WHERE clause of the query
+ *
+ * This allows the query to return only the posts of the current language
+ *
+ * @since 0.1.0
+ *
+ * @global StdClass $polylang
+ *
+ * @param string   $where The WHERE clause of the query.
+ * @param WP_Query &$this The WP_Query instance (passed by reference).
+ * @return string
+ */
+function polylang_slug_posts_where_filter( $where, $query ) {
+	global $polylang;
+
+	$lang = pll_current_language();
+
+	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
+	$where .= $polylang->model->where_clause( $lang, 'post' );
+
+	return $where;
+}
+add_filter( 'posts_where', 'polylang_slug_posts_where_filter', 10, 2 );
+
+/**
+ * Extend the JOIN clause of the query
+ *
+ * This allows the query to return only the posts of the current language
+ *
+ * @since 0.1.0
+ *
+ * @global StdClass $polylang
+ *
+ * @param string   $where The JOIN clause of the query.
+ * @param WP_Query &$this The WP_Query instance (passed by reference).
+ * @return string
+ */
+function polylang_slug_posts_join_filter( $join, $query ) {
+	global $polylang;
+
+	// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = " . ('term' == $type ? "t.term_id" : "ID");
+	$join .= $polylang->model->join_clause( 'post' );
+
+	return $join;
+}
+add_filter( 'posts_join', 'polylang_slug_posts_join_filter', 10, 2 );

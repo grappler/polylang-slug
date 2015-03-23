@@ -117,8 +117,11 @@ add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 
  * @return string
  */
 function polylang_slug_posts_where_filter( $where, $query ) {
-	global $polylang;
+	if ( is_admin() ) {
+		return $where;
+	}
 
+	global $polylang;
 	$lang = pll_current_language();
 
 	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
@@ -142,6 +145,10 @@ add_filter( 'posts_where', 'polylang_slug_posts_where_filter', 10, 2 );
  * @return string
  */
 function polylang_slug_posts_join_filter( $join, $query ) {
+	if ( is_admin() ) {
+		return $join;
+	}
+
 	global $polylang;
 
 	// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = " . ('term' == $type ? "t.term_id" : "ID");

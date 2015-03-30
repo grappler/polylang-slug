@@ -122,9 +122,13 @@ function polylang_slug_posts_where_filter( $where, $query ) {
 	}
 
 	global $polylang;
+
+	if ( !empty($query->query['post_type']) && !$polylang->model->is_translated_post_type($query->query['post_type']) ) {
+		return $where;
+	}
+
 	$lang = pll_current_language();
 
-	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
 	$where .= $polylang->model->where_clause( $lang, 'post' );
 
 	return $where;
@@ -151,7 +155,10 @@ function polylang_slug_posts_join_filter( $join, $query ) {
 
 	global $polylang;
 
-	// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = " . ('term' == $type ? "t.term_id" : "ID");
+	if ( !empty($query->query['post_type']) && !$polylang->model->is_translated_post_type($query->query['post_type']) ) {
+		return $join;
+	}
+
 	$join .= $polylang->model->join_clause( 'post' );
 
 	return $join;

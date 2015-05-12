@@ -113,7 +113,7 @@ add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 
  * @global StdClass $polylang
  *
  * @param string   $where The WHERE clause of the query.
- * @param WP_Query &$this The WP_Query instance (passed by reference).
+ * @param WP_Query $query The WP_Query instance (passed by reference).
  * @return string
  */
 function polylang_slug_posts_where_filter( $where, $query ) {
@@ -141,8 +141,8 @@ add_filter( 'posts_where', 'polylang_slug_posts_where_filter', 10, 2 );
  *
  * @global StdClass $polylang
  *
- * @param string   $where The JOIN clause of the query.
- * @param WP_Query &$this The WP_Query instance (passed by reference).
+ * @param string   $join  The JOIN clause of the query.
+ * @param WP_Query $query The WP_Query instance (passed by reference).
  * @return string
  */
 function polylang_slug_posts_join_filter( $join, $query ) {

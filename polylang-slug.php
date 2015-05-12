@@ -112,13 +112,18 @@ add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 
  * @global StdClass $polylang
  *
  * @param string $query Database query.
+ *
+ * @return string The modified query
  */
 function polylang_slug_filter_queries( $query ) {
 	global $wpdb, $polylang;
 	// keep a record of the queries
 	$queries[] = $query;
 
-	$is_main_sql = preg_match( "#\n\t\tSELECT ID, post_name, post_parent, post_type\n\t\tFROM {$wpdb->posts}\n\t\tWHERE post_name IN \(([^)]+)\)\n\t\tAND post_type IN \(([^)]+)\)#", $query, $matches );
+	$is_main_sql = preg_match(
+		"#SELECT ID, post_name, post_parent, post_type FROM {$wpdb->posts} WHERE post_name IN \(([^)]+)\) AND post_type IN \(([^)]+)\)#",
+		trim(str_replace(array("\t", "\n"), array( '', ' ' ), $query)),
+		$matches );
 
 	if ( $is_main_sql ) {
 

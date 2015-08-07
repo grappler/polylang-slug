@@ -127,7 +127,10 @@ function polylang_slug_filter_queries( $query ) {
 		// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = " . ('term' == $type ? "t.term_id" : "ID");
 		$join_clause  = $polylang->model->join_clause( 'post' );
 		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
-		$where_clause = $polylang->model->where_clause( $lang, 'post' );
+		$where_clause = '';
+		if ( $lang ) {
+			$where_clause = $polylang->model->where_clause( $lang, 'post' );
+		}
 
 		$query = "SELECT ID, post_name, post_parent, post_type
 				FROM {$wpdb->posts}

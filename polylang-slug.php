@@ -204,25 +204,3 @@ function polylang_slug_posts_join_filter( $join, $query ) {
 	return $join;
 }
 add_filter( 'posts_join', 'polylang_slug_posts_join_filter', 10, 2 );
-
-add_filter('pre_get_posts', 'get_default_language_posts');
-
-function get_default_language_posts($query) {
-    if ($query->is_main_query() && function_exists('pll_default_language') && !is_admin()) {
-        $terms = get_terms('post_translations'); //polylang stores translated post IDs in a serialized array in the description field of this custom taxonomy
-        $defLang = pll_default_language(); //default lanuage of the blog
-        $curLang = pll_current_language(); //current selected language requested on the broswer
-        $filterPostIDs = array();
-        foreach ($terms as $translation) {
-            $transPost = unserialize($translation->description);
-            //if the current language is not the default, lets pick up the default language post
-            if ($defLang != $curLang)
-                $filterPostIDs[] = $transPost[$defLang];
-        }
-        if ($defLang != $curLang) {
-            $query->set('lang', $defLang . ',' . $curLang);  //select both default and current language post
-            $query->set('post__not_in', $filterPostIDs); // remove the duplicate post in the default language
-        }
-    }
-    return $query;
-}

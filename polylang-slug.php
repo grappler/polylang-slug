@@ -25,11 +25,10 @@
  * Domain Path:       /languages
  */
 
-
 // Built using code from: https://wordpress.org/support/topic/plugin-polylang-identical-page-names-in-different-languages?replies=8#post-2669927
 
 // Check if PLL exists & the minimum version is correct.
-if ( ! defined( 'POLYLANG_VERSION' ) || version_compare( POLYLANG_VERSION, '1.8', '=<' ) || version_compare( $GLOBALS[ 'wp_version' ], '4.0', '<' ) ) {
+if ( ! function_exists( 'PLL' ) || ! defined( 'POLYLANG_VERSION' ) && version_compare( POLYLANG_VERSION, '1.8', '=<' ) || version_compare( $GLOBALS[ 'wp_version' ], '4.0', '<' ) ) {
 	add_action( 'admin_notices', 'polylang_slug_admin_notices' );
 	return;
 }
@@ -127,23 +126,16 @@ add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 
 function polylang_slug_filter_queries( $query ) {
 	global $wpdb;
 
-	// Only run on the front end.
-	if ( is_admin() ){
+	// Check if should contine.
+	if ( ! polylang_slug_should_run() ) {
 		return $query;
 	}
 
 	$lang = pll_current_language();
-	// If no current lang return.
-	if ( empty( $lang ) ) {
-		return $query;
-	}
 
-	// Keep a record of the queries.
-	$queries[] = $query;
-
-	// Query for pages, attachments and hierarchical CPT.
+	// Query for posts page, pages, attachments and hierarchical CPT. This is the only possible place to make the change. The SQL query is set in get_page_by_path()
 	$is_pages_sql = preg_match(
-		"#SELECT ID, post_name, post_parent, post_type FROM {$wpdb->posts} WHERE post_name IN \(([^)]+)\) AND post_type IN \(([^)]+)\)#",
+		"#SELECT ID, post_name, post_parent, post_type FROM {$wpdb->posts} .*#",
 		polylang_slug_standardize_query( $query ),
 		$matches
 	);
@@ -155,35 +147,60 @@ function polylang_slug_filter_queries( $query ) {
 		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")".
 		$where_clause = PLL()->model->post->where_clause( $lang );
 
-		$query = "SELECT ID, post_name, post_parent, post_type
-				FROM {$wpdb->posts}
-				$join_clause
-				WHERE post_name IN ({$matches[1]})
-				AND post_type IN ({$matches[2]})
-				$where_clause";
+		$query = preg_match(
+			"#(SELECT .* (?=FROM))(FROM .* (?=WHERE))(?:(WHERE .*(?=ORDER))|(WHERE .*$))(.*)#",
+			polylang_slug_standardize_query( $query ),
+			$matches
+		);
+
+		// Reindex array numerically $matches[3] and $matches[4] are not added together thus leaving a gap. With this $matches[5] moves up to $matches[4]
+		$matches = array_values( $matches );
+
+		// SELECT, FROM, INNER JOIN, WHERE, WHERE CLAUSE (additional), ORBER BY (if included)
+		$sql_query = $matches[1] . $matches[2] . $join_clause . $matches[3] . $where_clause . $matches[4];
+
+		/**
+		 * Disable front end query modification.
+		 *
+		 * Allows disabling front end query modification if not needed.
+		 *
+		 * @since 0.2.0
+		 *
+		 * @param string $sql_query    Database query.
+		 * @param array  $matches {
+		 *     @type string $matches[1] SELECT SQL Query.
+		 *     @type string $matches[2] FROM SQL Query.
+		 *     @type string $matches[3] WHERE SQL Query.
+		 *     @type string $matches[4] End of SQL Query (Possibly ORDER BY).
+		 * }
+		 * @param string $join_clause  INNER JOIN Polylang clause.
+		 * @param string $where_clause Additional Polylang WHERE clause.
+		 */
+		$query = apply_filters( 'polylang_slug_sql_query', $sql_query, $matches, $join_clause, $where_clause );
+
 	}
 
-	// Query for posts and non hierarchical CPT.
-	$is_post_sql = preg_match(
-		"#SELECT {$wpdb->posts}.* FROM {$wpdb->posts} WHERE 1=1 (.*) ORDER BY (.*)#",
-		polylang_slug_standardize_query( $query ),
-		$matches
-	);
-
-	if ( $is_post_sql ) {
-
-		// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = ID".
-		$join_clause  = PLL()->model->post->join_clause();
-		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")".
-		$where_clause = PLL()->model->post->where_clause( $lang );
-
-		$query = "SELECT {$wpdb->posts}.*
-				FROM {$wpdb->posts}
-				$join_clause
-				WHERE 1=1 {$matches[1]}
-				$where_clause
-				ORDER BY {$matches[2]}";
-	}
+	// Query for posts and non hierarchical CPT. This should not be needed.
+//	$is_post_sql = preg_match(
+//		"#SELECT {$wpdb->posts}.* FROM {$wpdb->posts} WHERE 1=1 (.*) ORDER BY (.*)#",
+//		polylang_slug_standardize_query( $query ),
+//		$matches
+//	);
+//
+//	if ( $is_post_sql ) {
+//
+//		// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = ID".
+//		$join_clause  = PLL()->model->post->join_clause();
+//		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")".
+//		$where_clause = PLL()->model->post->where_clause( $lang );
+//
+//		$query = "SELECT {$wpdb->posts}.*
+//				FROM {$wpdb->posts}
+//				$join_clause
+//				WHERE 1=1 {$matches[1]}
+//				$where_clause
+//				ORDER BY {$matches[2]}";
+//	}
 
 	return $query;
 }
@@ -196,18 +213,31 @@ add_filter( 'query', 'polylang_slug_filter_queries' );
  *
  * @since 0.1.0
  *
+ * @global wpdb   $wpdb  WordPress database abstraction object.
+ *
  * @param  string   $where The WHERE clause of the query.
  * @param  WP_Query $query The WP_Query instance (passed by reference).
  *
  * @return string          The WHERE clause of the query.
  */
 function polylang_slug_posts_where_filter( $where, $query ) {
+	global $wpdb;
 
-	if ( is_admin() || ! empty( $query->query['lang'] ) || ! empty( $query->query['post_type'] ) && ! $polylang->model->is_translated_post_type( $query->query['post_type'] ) ) {
+	// Check if should contine.
+	if ( ! polylang_slug_should_run( $query ) ) {
 		return $where;
 	}
 
-	$lang = pll_current_language();
+	if ( isset( $query->query['pagename'] ) ) {
+		// Replace post ID with post_name - Fix for pages.
+		$where = preg_replace(
+			"/(\({$wpdb->posts}.ID = '\d{1,10}'\))/",
+			"{$wpdb->posts}.post_name = '{$query->query['pagename']}'",
+			polylang_slug_standardize_query( $where )
+		);
+	}
+
+	$lang = empty( $query->query['lang'] ) ? pll_current_language() : $query->query['lang'];
 
 	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")"
 	$where .= PLL()->model->post->where_clause( $lang );
@@ -230,7 +260,8 @@ add_filter( 'posts_where', 'polylang_slug_posts_where_filter', 10, 2 );
  */
 function polylang_slug_posts_join_filter( $join, $query ) {
 
-	if ( is_admin() || ! empty( $query->query['lang'] ) || ! empty( $query->query['post_type'] ) && ! $polylang->model->is_translated_post_type( $query->query['post_type'] ) ) {
+	// Check if should contine.
+	if ( ! polylang_slug_should_run( $query ) ) {
 		return $join;
 	}
 
@@ -240,6 +271,40 @@ function polylang_slug_posts_join_filter( $join, $query ) {
 	return $join;
 }
 add_filter( 'posts_join', 'polylang_slug_posts_join_filter', 10, 2 );
+
+/**
+ * Check if the query needs to be adapted.
+ *
+ * @since 0.2.0
+ *
+ * @param  WP_Query $query The WP_Query instance (passed by reference).
+ *
+ * @return bool
+ */
+function polylang_slug_should_run( $query = '' ) {
+
+	/**
+	 * Disable front end query modification.
+	 *
+	 * Allows disabling front end query modification if not needed.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param bool     false  Not disabling run.
+	 * @param WP_Query $query The WP_Query instance (passed by reference).
+	 */
+	$disable       = apply_filters( 'polylang_slug_disable', false, $query );
+	// The lang query should be defined if the URL contains the language
+	$lang          = empty( $query->query['lang'] ) ? pll_current_language() : $query->query['lang'];
+	// Checks if the post type is translated when doing a custom query with the post type defined
+	$is_translated = ! empty( $query->query['post_type'] ) && ! PLL()->model->is_translated_post_type( $query->query['post_type'] );
+
+	if ( is_admin() || ! $lang || $is_translated || $disable ) {
+		return false;
+	} else {
+		return true;
+	}
+}
 
 /**
  * Standardize the query.

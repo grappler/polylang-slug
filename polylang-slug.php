@@ -28,7 +28,7 @@
 // Built using code from: https://wordpress.org/support/topic/plugin-polylang-identical-page-names-in-different-languages?replies=8#post-2669927
 
 // Check if PLL exists & the minimum version is correct.
-if ( ! defined( 'POLYLANG_VERSION' ) && version_compare( POLYLANG_VERSION, '1.7', '=<' ) || version_compare( $GLOBALS[ 'wp_version' ], '4.0', '=<' ) ) {
+if ( ! defined( 'POLYLANG_VERSION' ) || version_compare( POLYLANG_VERSION, '1.7', '=<' ) || version_compare( $GLOBALS[ 'wp_version' ], '4.0', '=<' ) ) {
 	add_action( 'admin_notices', 'polylang_slug_admin_notices' );
 	return;
 }
@@ -126,13 +126,6 @@ add_filter( 'wp_unique_post_slug', 'polylang_slug_unique_slug_in_language', 10, 
 function polylang_slug_filter_queries( $query ) {
 	global $wpdb;
 
-	// Check if should contine. Don't add $query polylang_slug_should_run() as $query is a SQL query.
-	if ( ! polylang_slug_should_run() ) {
-		return $query;
-	}
-
-	$lang = pll_current_language();
-
 	// Query for posts page, pages, attachments and hierarchical CPT. This is the only possible place to make the change. The SQL query is set in get_page_by_path()
 	$is_pages_sql = preg_match(
 		"#SELECT ID, post_name, post_parent, post_type FROM {$wpdb->posts} .*#",
@@ -140,45 +133,52 @@ function polylang_slug_filter_queries( $query ) {
 		$matches
 	);
 
-	if ( $is_pages_sql ) {
-
-		// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = ID".
-		$join_clause  = polylang_slug_model_post_join_clause();
-		// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")".
-		$where_clause = polylang_slug_model_post_where_clause( $lang );
-
-		$query = preg_match(
-			"#(SELECT .* (?=FROM))(FROM .* (?=WHERE))(?:(WHERE .*(?=ORDER))|(WHERE .*$))(.*)#",
-			polylang_slug_standardize_query( $query ),
-			$matches
-		);
-
-		// Reindex array numerically $matches[3] and $matches[4] are not added together thus leaving a gap. With this $matches[5] moves up to $matches[4]
-		$matches = array_values( $matches );
-
-		// SELECT, FROM, INNER JOIN, WHERE, WHERE CLAUSE (additional), ORBER BY (if included)
-		$sql_query = $matches[1] . $matches[2] . $join_clause . $matches[3] . $where_clause . $matches[4];
-
-		/**
-		 * Disable front end query modification.
-		 *
-		 * Allows disabling front end query modification if not needed.
-		 *
-		 * @since 0.2.0
-		 *
-		 * @param string $sql_query    Database query.
-		 * @param array  $matches {
-		 *     @type string $matches[1] SELECT SQL Query.
-		 *     @type string $matches[2] FROM SQL Query.
-		 *     @type string $matches[3] WHERE SQL Query.
-		 *     @type string $matches[4] End of SQL Query (Possibly ORDER BY).
-		 * }
-		 * @param string $join_clause  INNER JOIN Polylang clause.
-		 * @param string $where_clause Additional Polylang WHERE clause.
-		 */
-		$query = apply_filters( 'polylang_slug_sql_query', $sql_query, $matches, $join_clause, $where_clause );
-
+	if ( ! $is_pages_sql ) {
+		return $query;
 	}
+
+	// Check if should contine. Don't add $query polylang_slug_should_run() as $query is a SQL query.
+	if ( ! polylang_slug_should_run() ) {
+		return $query;
+	}
+
+	$lang = pll_current_language();
+	// " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = ID".
+	$join_clause  = polylang_slug_model_post_join_clause();
+	// " AND pll_tr.term_taxonomy_id IN (" . implode(',', $languages) . ")".
+	$where_clause = polylang_slug_model_post_where_clause( $lang );
+
+	$query = preg_match(
+		"#(SELECT .* (?=FROM))(FROM .* (?=WHERE))(?:(WHERE .*(?=ORDER))|(WHERE .*$))(.*)#",
+		polylang_slug_standardize_query( $query ),
+		$matches
+	);
+
+	// Reindex array numerically $matches[3] and $matches[4] are not added together thus leaving a gap. With this $matches[5] moves up to $matches[4]
+	$matches = array_values( $matches );
+
+	// SELECT, FROM, INNER JOIN, WHERE, WHERE CLAUSE (additional), ORBER BY (if included)
+	$sql_query = $matches[1] . $matches[2] . $join_clause . $matches[3] . $where_clause . $matches[4];
+
+	/**
+	 * Disable front end query modification.
+	 *
+	 * Allows disabling front end query modification if not needed.
+	 *
+	 * @since 0.2.0
+	 *
+	 * @param string $sql_query    Database query.
+	 * @param array  $matches {
+	 *     @type string $matches[1] SELECT SQL Query.
+	 *     @type string $matches[2] FROM SQL Query.
+	 *     @type string $matches[3] WHERE SQL Query.
+	 *     @type string $matches[4] End of SQL Query (Possibly ORDER BY).
+	 * }
+	 * @param string $join_clause  INNER JOIN Polylang clause.
+	 * @param string $where_clause Additional Polylang WHERE clause.
+	 */
+	$query = apply_filters( 'polylang_slug_sql_query', $sql_query, $matches, $join_clause, $where_clause );
+
 
 	return $query;
 }

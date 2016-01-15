@@ -17,7 +17,6 @@
 	},
 	"require" : {
 		"php"                        : ">=5.3",
-		"johnpbloch/wordpress"       : ">=3.9",
 		"wpackagist-plugin/polylang" : "*"
 	}
 }

@@ -258,13 +258,18 @@ function polylang_slug_should_run( $query = '' ) {
 	 * @param bool     false  Not disabling run.
 	 * @param WP_Query $query The WP_Query instance (passed by reference).
 	 */
-	$disable       = apply_filters( 'polylang_slug_disable', false, $query );
+	
+	// Do not run in admin or if Polylang is disabled
+	$disable = apply_filters( 'polylang_slug_disable', false, $query ); 
+	if ( is_admin() || ! function_exists( 'pll_current_language' ) || $disable ) {
+		return false;
+	}
 	// The lang query should be defined if the URL contains the language
 	$lang          = empty( $query->query['lang'] ) ? pll_current_language() : $query->query['lang'];
 	// Checks if the post type is translated when doing a custom query with the post type defined
 	$is_translated = ! empty( $query->query['post_type'] ) && ! pll_is_translated_post_type( $query->query['post_type'] );
 
-	if ( is_admin() || ! $lang || $is_translated || $disable ) {
+	if ( empty( $lang ) || $is_translated ) {
 		return false;
 	} else {
 		return true;

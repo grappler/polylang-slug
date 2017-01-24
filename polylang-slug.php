@@ -16,7 +16,7 @@
  * Plugin URI:        https://github.com/grappler/polylang-slug
  * GitHub Plugin URI: https://github.com/grappler/polylang-slug
  * Description:       Allows same slug for multiple languages in Polylang
- * Version:           0.2.0
+ * Version:           0.2.1
  * Author:            Ulrich Pogson
  * Author URI:        http://ulrich.pogson.ch/
  * License:           GPL-2.0+

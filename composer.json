@@ -1,15 +1,14 @@
 {
 	"name"        : "grappler/polylang-slug",
 	"description" : "Allows same slug for multiple languages in Polylang",
-	"keywords"    : ["wordpress", "polylang"],
+	"keywords"    : [ "wordpress", "polylang" ],
 	"type"        : "wordpress-plugin",
 	"homepage"    : "https://github.com/grappler/polylang-slug",
-	"license"     : "GPL2",
+	"license"     : "GPL-2.0-or-later",
 	"authors"     : [
 		{
 			"name"    : "Ulrich Pogson",
-			"email"   : "grapplerulrich@gmail.com",
-			"homepage": "http://ulrich.pogson.ch/"
+			"homepage": "https://ulrich.pogson.ch/"
 		}
 	],
 	"support"     : {

@@ -39,7 +39,7 @@ if ( ! defined( 'POLYLANG_VERSION' ) || version_compare( POLYLANG_VERSION, '1.7'
  * @since 0.2.0
  */
 function polylang_slug_admin_notices() {
-	echo '<div class="error"><p>' . __( 'Polylang Slug requires Polylang v1.7 and WordPress 4.0', 'polylang-slug') . '</p></div>';
+	echo '<div class="error"><p>' . __( 'Polylang Slug requires at the minimum Polylang v1.7 and WordPress 4.0', 'polylang-slug') . '</p></div>';
 }
 
 /**

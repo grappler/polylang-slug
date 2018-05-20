@@ -258,10 +258,10 @@ function polylang_slug_should_run( $query = '' ) {
 	 * @param bool     false  Not disabling run.
 	 * @param WP_Query $query The WP_Query instance (passed by reference).
 	 */
-	
+
 	// Do not run in admin or if Polylang is disabled
-	$disable = apply_filters( 'polylang_slug_disable', false, $query ); 
-	if ( is_admin() || ! function_exists( 'pll_current_language' ) || $disable ) {
+	$disable = apply_filters( 'polylang_slug_disable', false, $query );
+	if ( is_admin() || is_feed() || ! function_exists( 'pll_current_language' ) || $disable ) {
 		return false;
 	}
 	// The lang query should be defined if the URL contains the language

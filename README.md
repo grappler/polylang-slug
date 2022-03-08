@@ -19,6 +19,9 @@ Install the plugin and activate it and that is it. There is no settings page or 
 
 ## Changelog
 
+### 0.2.3 - 09 March 2022
+* Fix comparison operator in version_compare() calls for PHP8 compatibility - props @chesio
+
 ### 0.2.2 - 20 May 2018
 * Do not run of feeds
 * Update composer.json license
